@@ -16,10 +16,9 @@ with st.sidebar:
         try:
             temp_client = OpenAI(api_key=api_key_input, base_url="https://api.groq.com/openai/v1")
             models_data = temp_client.models.list()
-            # Filtrujemy tylko modele tekstowe (wykluczamy modele audio typu whisper)
             available_models = [
                 m.id for m in models_data.data 
-                if "whisper" not in m.id.lower() and "guard" not in m.id.lower()
+                if "whisper" not in m.id.lower() and "guard" not in m.id.lower() and "tts" not in m.id.lower()
             ]
             if available_models:
                 selected_model = st.selectbox("Wybierz aktywny model z Twojego konta:", available_models)
@@ -41,6 +40,11 @@ with st.sidebar:
         value="Przekonać do zwiększenia budżetu marketingowego na Q3 o 15%."
     )
 
+    # Przycisk do resetowania rozmowy po zmianie postaci
+    if st.button("🔄 Zastosuj nową postać / Resetuj czat", use_container_width=True):
+        st.session_state.pop("messages", None)
+        st.rerun()
+
 if not api_key_input:
     st.warning("👈 Wprowadź swój klucz API Groq w panelu bocznym, aby uruchomić symulator.")
 elif not selected_model:
@@ -51,20 +55,23 @@ else:
         base_url="https://api.groq.com/openai/v1"
     )
 
+    # Dynamiczna instrukcja systemowa bazująca na aktualnych polach w panelu bocznym
+    system_prompt = (
+        f"Jesteś postacią: {character_name}. Opis Twojego profilu i zachowania: {character_description}. "
+        f"Twoim zadaniem jest wcielenie się w tę postać podczas dyskusji z użytkownikiem. "
+        f"Użytkownik próbuje osiągnąć cel: {target_goal}. "
+        f"Reaguj naturalnie, zgodnie ze swoim profilem, stawiaj opory tam, gdzie postać normalnie by je stawiała, "
+        f"i daj się przekonać tylko wtedy, gdy argumenty będą spójne z Twoim profilem. Rozmawiaj wyłącznie po polsku."
+    )
+
     if "messages" not in st.session_state:
         st.session_state.messages = [
-            {
-                "role": "system",
-                "content": f"Jesteś postacią: {character_name}. Opis Twojego profilu i zachowania: {character_description}. "
-                           f"Twoim zadaniem jest wcielenie się w tę postać podczas dyskusji z użytkownikiem. "
-                           f"Użytkownik próbuje osiągnąć cel: {target_goal}. "
-                           f"Reaguj naturalnie, zgodnie ze swoim profilem, stawiaj opory tam, gdzie postać normalnie by je stawiała, i daj się przekonać tylko wtedy, gdy argumenty będą spójne z Twoim profilem."
-            },
-            {
-                "role": "assistant",
-                "content": "Dzień dobry. Słucham, w jakiej sprawie dzisiaj rozmawiamy?"
-            }
+            {"role": "system", "content": system_prompt},
+            {"role": "assistant", "content": f"Dzień dobry. Jestem {character_name}. W czym mogę pomóc?"}
         ]
+    else:
+        # Nadpisanie promptu systemowego na bieżąco, gdyby użytkownik edytował pola bez klikania resetu
+        st.session_state.messages[0]["content"] = system_prompt
 
     for message in st.session_state.messages:
         if message["role"] != "system":
