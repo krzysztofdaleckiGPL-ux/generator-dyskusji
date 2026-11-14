@@ -67,7 +67,7 @@ else:
             with st.spinner("Postać analizuje wypowiedź..."):
                 try:
                     response = client.chat.completions.create(
-                       model="llama-3.3-70b-versatile",
+                      model="mixtral-8x7b-32768",
                         messages=st.session_state.messages
                     )
                     assistant_reply = response.choices[0].message.content
