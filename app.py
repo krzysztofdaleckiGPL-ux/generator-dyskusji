@@ -6,12 +6,28 @@ st.set_page_config(page_title="Generator Dyskusji (Groq)", page_icon="🎯", lay
 st.title("🎯 Generator Dyskusji i Symulator Postaci (Groq)")
 st.markdown("Symulacja rozmowy z modelem behawioralnym przy użyciu darmowego API Groq.")
 
-# Panel boczny na konfigurację
 with st.sidebar:
     st.header("1. Konfiguracja Systemu")
     api_key_input = st.text_input("Wprowadź swój Klucz API Groq (zaczyna się od gsk_)", type="password")
     st.markdown("[Pobierz darmowy klucz z Groq Console](https://console.groq.com/keys)")
     
+    selected_model = None
+    if api_key_input:
+        try:
+            temp_client = OpenAI(api_key=api_key_input, base_url="https://api.groq.com/openai/v1")
+            models_data = temp_client.models.list()
+            # Filtrujemy tylko modele tekstowe (wykluczamy modele audio typu whisper)
+            available_models = [
+                m.id for m in models_data.data 
+                if "whisper" not in m.id.lower() and "guard" not in m.id.lower()
+            ]
+            if available_models:
+                selected_model = st.selectbox("Wybierz aktywny model z Twojego konta:", available_models)
+            else:
+                st.error("Nie znaleziono aktywnych modeli tekstowych dla tego klucza.")
+        except Exception as e:
+            st.error(f"Błąd połączenia z API przy pobieraniu modeli: {e}")
+
     st.divider()
     st.header("2. Profil Postaci")
     character_name = st.text_input("Imię i nazwisko / Rola postaci", value="Jan Kowalski (Dyrektor Finansowy)")
@@ -27,14 +43,14 @@ with st.sidebar:
 
 if not api_key_input:
     st.warning("👈 Wprowadź swój klucz API Groq w panelu bocznym, aby uruchomić symulator.")
+elif not selected_model:
+    st.warning("👈 Poczekaj na załadowanie listy modeli lub sprawdź poprawność klucza API w panelu bocznym.")
 else:
-    # Klient OpenAI skierowany na serwery Groq
     client = OpenAI(
         api_key=api_key_input,
         base_url="https://api.groq.com/openai/v1"
     )
 
-    # Inicjalizacja pamięci czatu
     if "messages" not in st.session_state:
         st.session_state.messages = [
             {
@@ -46,28 +62,25 @@ else:
             },
             {
                 "role": "assistant",
-                "content": f"Dzień dobry. Słucham, w jakiej sprawie dzisiaj rozmawiamy?"
+                "content": "Dzień dobry. Słucham, w jakiej sprawie dzisiaj rozmawiamy?"
             }
         ]
 
-    # Wyświetlanie historii czatu
     for message in st.session_state.messages:
         if message["role"] != "system":
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
 
-    # Obsługa wprowadzania wiadomości przez użytkownika
     if prompt := st.chat_input("Napisz swoją wypowiedź do postaci..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Generowanie odpowiedzi przez Groq z użyciem stabilnego modelu llama-3.1-8b-instant
         with st.chat_message("assistant"):
             with st.spinner("Postać analizuje wypowiedź..."):
                 try:
                     response = client.chat.completions.create(
-                        model="llama-3.1-8b-instant",
+                        model=selected_model,
                         messages=st.session_state.messages
                     )
                     assistant_reply = response.choices[0].message.content
