@@ -1,16 +1,16 @@
 import streamlit as st
 from openai import OpenAI
 
-st.set_page_config(page_title="Generator Dyskusji", page_icon="🎯", layout="wide")
+st.set_page_config(page_title="Generator Dyskusji (Groq)", page_icon="🎯", layout="wide")
 
-st.title("🎯 Generator Dyskusji i Symulator Postaci")
-st.markdown("Stwórz zaawansowany model postaci i przeprowadź symulację.")
+st.title("🎯 Generator Dyskusji i Symulator Postaci (Groq)")
+st.markdown("Symulacja rozmowy z modelem behawioralnym przy użyciu darmowego API Groq.")
 
 # Panel boczny na konfigurację
 with st.sidebar:
     st.header("1. Konfiguracja Systemu")
-    api_key_input = st.text_input("Wprowadź swój Klucz API OpenAI", type="password")
-    st.markdown("[Pobierz klucz z platform.openai.com](https://platform.openai.com/api-keys)")
+    api_key_input = st.text_input("Wprowadź swój Klucz API Groq (zaczyna się od gsk_)", type="password")
+    st.markdown("[Pobierz darmowy klucz z Groq Console](https://console.groq.com/keys)")
     
     st.divider()
     st.header("2. Profil Postaci")
@@ -26,10 +26,13 @@ with st.sidebar:
     )
 
 if not api_key_input:
-    st.warning("👈 Wprowadź swój klucz API OpenAI w panelu bocznym, aby uruchomić symulator.")
+    st.warning("👈 Wprowadź swój klucz API Groq w panelu bocznym, aby uruchomić symulator.")
 else:
-    # Standardowy klient OpenAI
-    client = OpenAI(api_key=api_key_input)
+    # Klient OpenAI skierowany na serwery Groq
+    client = OpenAI(
+        api_key=api_key_input,
+        base_url="https://api.groq.com/openai/v1"
+    )
 
     # Inicjalizacja pamięci czatu
     if "messages" not in st.session_state:
@@ -59,12 +62,12 @@ else:
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Generowanie odpowiedzi przez stabilny model gpt-4o-mini
+        # Generowanie odpowiedzi przez Groq (używamy stabilnego Llama 3.3)
         with st.chat_message("assistant"):
             with st.spinner("Postać analizuje wypowiedź..."):
                 try:
                     response = client.chat.completions.create(
-                        model="gpt-4o-mini",
+                        model="llama-3.3-70b-versatile",
                         messages=st.session_state.messages
                     )
                     assistant_reply = response.choices[0].message.content
