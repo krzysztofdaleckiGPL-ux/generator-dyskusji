@@ -1,16 +1,16 @@
 import streamlit as st
 from openai import OpenAI
 
-st.set_page_config(page_title="Generator Dyskusji (Groq)", page_icon="🎯", layout="wide")
+st.set_page_config(page_title="Generator Dyskusji", page_icon="🎯", layout="wide")
 
-st.title("🎯 Generator Dyskusji i Symulator Postaci (Groq Engine)")
-st.markdown("Stwórz zaawansowany model postaci i przeprowadź symulację z użyciem darmowego API Groq.")
+st.title("🎯 Generator Dyskusji i Symulator Postaci")
+st.markdown("Stwórz zaawansowany model postaci i przeprowadź symulację.")
 
 # Panel boczny na konfigurację
 with st.sidebar:
     st.header("1. Konfiguracja Systemu")
-    api_key_input = st.text_input("Wprowadź swój Klucz API Groq", type="password")
-    st.markdown("[Pobierz darmowy klucz z Groq Console](https://console.groq.com/keys)")
+    api_key_input = st.text_input("Wprowadź swój Klucz API OpenAI", type="password")
+    st.markdown("[Pobierz klucz z platform.openai.com](https://platform.openai.com/api-keys)")
     
     st.divider()
     st.header("2. Profil Postaci")
@@ -26,13 +26,10 @@ with st.sidebar:
     )
 
 if not api_key_input:
-    st.warning("👈 Wprowadź swój klucz API Groq w panelu bocznym, aby uruchomić symulator.")
+    st.warning("👈 Wprowadź swój klucz API OpenAI w panelu bocznym, aby uruchomić symulator.")
 else:
-    # Inicjalizacja klienta OpenAI skonfigurowana pod serwery Groq
-    client = OpenAI(
-        api_key=api_key_input,
-        base_url="https://api.groq.com/openai/v1"
-    )
+    # Standardowy klient OpenAI
+    client = OpenAI(api_key=api_key_input)
 
     # Inicjalizacja pamięci czatu
     if "messages" not in st.session_state:
@@ -62,12 +59,12 @@ else:
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Generowanie odpowiedzi przez model Groq (używamy potężnego i darmowego llama-3.3-70b-versatile)
+        # Generowanie odpowiedzi przez stabilny model gpt-4o-mini
         with st.chat_message("assistant"):
             with st.spinner("Postać analizuje wypowiedź..."):
                 try:
                     response = client.chat.completions.create(
-                      model="mixtral-8x7b-32768",
+                        model="gpt-4o-mini",
                         messages=st.session_state.messages
                     )
                     assistant_reply = response.choices[0].message.content
