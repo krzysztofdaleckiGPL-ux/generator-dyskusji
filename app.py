@@ -1,37 +1,42 @@
-import streamlit as Dropper
+import streamlit as st
 from openai import OpenAI
 
-Dropper.set_page_config(page_title="Generator Dyskusji", page_icon="🎯", layout="wide")
+st.set_page_config(page_title="Generator Dyskusji (Groq)", page_icon="🎯", layout="wide")
 
-Dropper.title("🎯 Generator Dyskusji i Symulator Postaci")
-Dropper.markdown("Stwórz zaawansowany model postaci na podstawie danych i przeprowadź strategiczną symulację rozmowy.")
+st.title("🎯 Generator Dyskusji i Symulator Postaci (Groq Engine)")
+st.markdown("Stwórz zaawansowany model postaci i przeprowadź symulację z użyciem darmowego API Groq.")
 
 # Panel boczny na konfigurację
-with Dropper.sidebar:
-    Dropper.header("1. Konfiguracja Systemu")
-    api_key_input = Dropper.text_input("Wprowadź swój Klucz API OpenAI", type="password")
+with st.sidebar:
+    st.header("1. Konfiguracja Systemu")
+    api_key_input = st.text_input("Wprowadź swój Klucz API Groq", type="password")
+    st.markdown("[Pobierz darmowy klucz z Groq Console](https://console.groq.com/keys)")
     
-    Dropper.divider()
-    Dropper.header("2. Profil Postaci")
-    character_name = Dropper.text_input("Imię i nazwisko / Rola postaci", value="Jan Kowalski (Dyrektor Finansowy)")
-    character_description = Dropper.text_area(
+    st.divider()
+    st.header("2. Profil Postaci")
+    character_name = st.text_input("Imię i nazwisko / Rola postaci", value="Jan Kowalski (Dyrektor Finansowy)")
+    character_description = st.text_area(
         "Opis postaci, sposób bycia, poglądy i cele",
         value="Ostrożny menedżer, skupia się na twardych danych i ROI. Nie znosi lania wody, preferuje krótkie i konkretne komunikaty. Obawia się ryzyka budżetowego."
     )
     
-    target_goal = Dropper.text_area(
+    target_goal = st.text_area(
         "Cel Twojej dyskusji z postacią",
         value="Przekonać do zwiększenia budżetu marketingowego na Q3 o 15%."
     )
 
 if not api_key_input:
-    Dropper.warning("👈 Wprowadź swój klucz API OpenAI w panelu bocznym, aby uruchomić symulator.")
+    st.warning("👈 Wprowadź swój klucz API Groq w panelu bocznym, aby uruchomić symulator.")
 else:
-    client = OpenAI(api_key=api_key_input)
+    # Inicjalizacja klienta OpenAI skonfigurowana pod serwery Groq
+    client = OpenAI(
+        api_key=api_key_input,
+        base_url="https://api.groq.com/openai/v1"
+    )
 
     # Inicjalizacja pamięci czatu
-    if "messages" not in Dropper.session_state:
-        Dropper.session_state.messages = [
+    if "messages" not in st.session_state:
+        st.session_state.messages = [
             {
                 "role": "system",
                 "content": f"Jesteś postacią: {character_name}. Opis Twojego profilu i zachowania: {character_description}. "
@@ -46,25 +51,27 @@ else:
         ]
 
     # Wyświetlanie historii czatu
-    for message in Dropper.session_state.messages:
+    for message in st.session_state.messages:
         if message["role"] != "system":
-            with Dropper.chat_message(message["role"]):
-                Dropper.markdown(message["content"])
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
 
     # Obsługa wprowadzania wiadomości przez użytkownika
-    if prompt := Dropper.chat_input("Napisz swoją wypowiedź do postaci..."):
-        Dropper.session_state.messages.append({"role": "user", "content": prompt})
-        with Dropper.chat_message("user"):
-            Dropper.markdown(prompt)
+    if prompt := st.chat_input("Napisz swoją wypowiedź do postaci..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
 
-        # Generowanie odpowiedzi przez model AI
-        with Dropper.chat_message("assistant"):
-            with Dropper.spinner("Postać analizuje wypowiedź..."):
-                response = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=Dropper.session_state.messages
-                )
-                assistant_reply = response.choices[0].message.content
-                Dropper.markdown(assistant_reply)
-        
-        Dropper.session_state.messages.append({"role": "assistant", "content": assistant_reply})
+        # Generowanie odpowiedzi przez model Groq (używamy potężnego i darmowego llama-3.3-70b-versatile)
+        with st.chat_message("assistant"):
+            with st.spinner("Postać analizuje wypowiedź..."):
+                try:
+                    response = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=st.session_state.messages
+                    )
+                    assistant_reply = response.choices[0].message.content
+                    st.markdown(assistant_reply)
+                    st.session_state.messages.append({"role": "assistant", "content": assistant_reply})
+                except Exception as e:
+                    st.error(f"Wystąpił błąd: {e}")
