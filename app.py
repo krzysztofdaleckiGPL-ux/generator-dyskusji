@@ -62,12 +62,12 @@ else:
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Generowanie odpowiedzi przez Groq (używamy stabilnego Llama 3.3)
+        # Generowanie odpowiedzi przez Groq z użyciem stabilnego modelu llama-3.1-8b-instant
         with st.chat_message("assistant"):
             with st.spinner("Postać analizuje wypowiedź..."):
                 try:
                     response = client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
+                        model="llama-3.1-8b-instant",
                         messages=st.session_state.messages
                     )
                     assistant_reply = response.choices[0].message.content
